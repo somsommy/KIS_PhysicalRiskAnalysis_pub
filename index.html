@@ -667,9 +667,8 @@
                                     className="bg-white border border-slate-300 text-slate-800 text-sm font-semibold rounded-xl px-4 py-2.5 shadow-sm focus:outline-none focus:border-secondary"
                                 >
                                     <option value="bok">한국은행 2026 공급망 지도 주요 사업장</option>
-                                    <option value="business_report">기업 최근 회계연도 사업보고서 '생산설비'의 사업장</option>
-                                    <option value="subsidiary">기업 최근 회계연도 사업보고서 '연결대상 종속회사 현황' 제조/생산 회사</option>
-                                    <option value="sr_report">기업 최근 지속가능경영보고서의 물리리스크 분석범위 대상 사업장</option>
+                                    <option value="business_report">기업 최근 회계연도 사업보고서 '생산설비'의 사업장(추후 업데이트)</option>
+                                    <option value="sr_report">기업 최근 지속가능경영보고서의 물리리스크 분석범위 대상 사업장(추후 업데이트)</option>
                                 </select>
                             </div>
 
@@ -848,7 +847,7 @@
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
                                 <div>
                                     <h3 className="text-lg font-bold text-slate-900">생산거점 수자원 리스크 핫스팟 지도</h3>
-                                    <p className="text-xs text-slate-500">WRI Aqueduct Overall Water Risk 기준 취약 자산(위험도 4.0 이상) 위치 매핑</p>
+                                    <p className="text-xs text-slate-500">WRI Aqueduct Overall Water Risk 기준 생산거점 위치 매핑</p>
                                 </div>
                                 <div className="flex items-center space-x-4 text-xs font-semibold">
                                     <div className="flex items-center space-x-1.5">
@@ -906,9 +905,10 @@
                                         return (
                                             <g key={idx} className="group cursor-pointer">
                                                 {isHighRisk && (
-                                                    <circle cx={x} cy={y} r="15" fill={fillColor} opacity="0.3" className="animate-ping" />
-                                                )}
-                                                <circle cx={x} cy={y} r="6.5" fill={fillColor} stroke="#FFFFFF" strokeWidth="2" className="drop-shadow-md" />
+				    <circle cx={x} cy={y} r="12" fill={fillColor} opacity="0.25" className="animate-pulse" />
+				)}
+				<circle cx={x} cy={y} r="5.5" fill={fillColor} stroke="#FFFFFF" strokeWidth="2" className="drop-shadow-md" />
+
 
                                                 <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                                     <rect x={x - 75} y={y - 48} width="150" height="38" rx="8" fill="#0F172A" className="shadow-2xl" />
