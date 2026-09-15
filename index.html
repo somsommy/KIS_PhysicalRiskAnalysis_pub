@@ -443,10 +443,10 @@
                                                     </span>
                                                 </td>
                                                 <td className="py-4 px-6 text-center font-semibold text-slate-700">
-                                                    {highCount}개 ({item['ratio of high risk factories'] || '0%'})
+                                                    {highCount}개 ({item['ratio of high risk factories'] ? Math.round(parseFloat(item['ratio of high risk factories']) * 100) + '%' : '0%'})
                                                 </td>
                                                 <td className="py-4 px-6 text-center font-bold text-danger">
-                                                    {extCount}개 ({item['ratio of extremely high risk factories'] || '0%'})
+                                                    {extCount}개 ({item['ratio of extremely high risk factories'] ? Math.round(parseFloat(item['ratio of extremely high risk factories']) * 100) + '%' : '0%'})
                                                 </td>
                                                 <td className="py-4 px-6 text-center">
                                                     <button 
