@@ -720,130 +720,163 @@
                         </div>
                     )}
 
+
                     {/* Tab 2-2: Disclosure & WRI 지표 누적 막대 그래프 */}
-                    {activeTab === 'disclosure' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <div className="space-y-6">
-                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">공시 현황 및 출처(페이지)</h4>
-                                    <p className="text-lg font-bold text-slate-900 mb-6">{mySr ? mySr['출처'] || '최근 지속가능경영보고서' : '최근 지속가능경영보고서'}</p>
+                    {activeTab === 'disclosure' && (() => {
+                        // 극단위험 사업장 보유 여부 판단
+                        const extCount = parseInt(corp['number of extremely high risk factories'] || 0, 10);
+                        const isTarget = extCount > 0 || (corp.max && parseFloat(corp.max) >= 4.0);
 
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl">
-                                            <span className="text-xs font-bold text-slate-700">물리적 리스크 공시 여부</span>
-                                            <div className="flex items-center space-x-1.5">
-                                                {mySr && (mySr['물리적 리스크 공시 여부'] === 'O' || mySr['물리적 리스크 공시 여부'] === 'Y') ? (
-                                                    <><SvgIcons.CheckCircle /><span className="text-xs font-bold text-emerald-700">공시완료</span></>
-                                                ) : (
-                                                    <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-slate-400">극단위험 사업장 미보유-데이터X</span></>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl">
-                                            <span className="text-xs font-bold text-slate-700">취약자산 & 재무영향 공시</span>
-                                            <div className="flex items-center space-x-1.5">
-                                                {mySr && (mySr['취약자산 & 재무적 영향 공시 여부'] === 'O' || mySr['취약자산 & 재무적 영향 공시 여부'] === 'Y') ? (
-                                                    <><SvgIcons.CheckCircle /><span className="text-xs font-bold text-emerald-700">공시완료</span></>
-                                                ) : (
-                                                    <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-slate-400">극단위험 사업장 미보유-데이터X</span></>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                        return (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                <div className="space-y-6">
+                                    <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">공시 현황 및 출처(페이지)</h4>
+                                        <p className="text-lg font-bold text-slate-900 mb-6">
+                                            {mySr ? mySr['출처'] || '최근 지속가능경영보고서' : (isTarget ? '최근 지속가능경영보고서' : 'SR 점검 대상 아님')}
+                                        </p>
 
-                                <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm">
-                                    <h4 className="text-xs font-bold text-blue-300 uppercase tracking-wider mb-2">인게이지먼트 제안 권고</h4>
-                                    <p className="text-xs leading-relaxed text-slate-300">
-                                        전체 평균 수자원 스트레스 점수 외에 극단 위험(Score 4.0 이상)에 노출된 개별 사업장에 대한 대응책 수립 여부 및 재무적 영향 정량치 산출을 요구하는 Bottom-up 인게이지먼트를 제안합니다. 사업장 별 매출액/생산량 등 materiality에 대한 데이터 접근 한계로, 비핵심 자산의 리스크가 높은 경우 기업이 공시범위에서 제외할 수 있습니다. 이에 대한 소통이 필요하며, 핵심 자산일 경우 유효한 재무위험 평가와 대응책 마련을 요구해야 합니다. 또한, 생산설비 외에 공급망 내 주요 자산, 외주 사업장 등에 대한 추가적 분석이 필요할 수 있습니다. 
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="lg:col-span-2 space-y-6">
-                                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                                    <h4 className="text-sm font-bold text-slate-900 mb-5">지속가능경영보고서 원문 크롤링 내역</h4>
-                                    
-                                    {/* 텍스트 블록 1: 공시내용 */}
-                                    <div className="mb-2 text-xs font-bold text-secondary">■ 물리적 리스크 공시 내용</div>
-                                    <div className="p-4 bg-slate-50 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-secondary mb-6">
-                                        "{mySr && mySr['공시내용'] ? mySr['공시내용'] : '극단위험 사업장 미보유 기업으로 물리적 기후변화 리스크 관련 상세 공시 정보가 등록되어 있지 않습니다.'}"
-                                    </div>
-
-                                    {/* 텍스트 블록 2: 재무영향내용 */}
-                                    <div className="mb-2 text-xs font-bold text-warning">■ 취약자산 및 재무적 영향 공시 내용</div>
-                                    <div className="p-4 bg-amber-50/60 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-warning">
-                                        "{mySr && mySr['재무영향내용'] ? mySr['재무영향내용'] : '극단위험 사업장 미보유 기업으로 물리적 기후변화 리스크 관련 상세 공시 정보가 등록되어 있지 않습니다.'}"
-                                    </div>
-                                </div>
-
-                                {/* WRI 세부 수자원 리스크 12개 지표 누적 막대 그래프 (Stacked Bar) */}
-                                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-2">
-                                        <h4 className="text-sm font-bold text-slate-900">WRI Aqueduct 세부 수자원 리스크 지표 현황 (사업장 분포)</h4>
-                                        <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
-                                            전체 사업장 {myFactories.length}개 대상 분석
-                                        </span>
-                                    </div>
-                                    <div className="space-y-4">
-                                        {wriStats.map((stat, i) => {
-                                            const highPct = stat.total ? ((stat.high / stat.total) * 100) : 0;
-                                            const medPct = stat.total ? ((stat.med / stat.total) * 100) : 0;
-                                            const lowPct = stat.total ? ((stat.low / stat.total) * 100) : 0;
-
-                                            return (
-                                                <div key={i} className="text-xs">
-                                                    <div className="flex justify-between items-center mb-1.5">
-                                                        <span className="font-semibold text-slate-700">{stat.label}</span>
-                                                        <span className="text-slate-400 font-mono text-[11px]">
-                                                            측정 {stat.total}건 (고위험 {stat.high} / 중위험 {stat.med} / 저위험 {stat.low})
-                                                        </span>
-                                                    </div>
-                                                    <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
-                                                        {stat.total > 0 ? (
-                                                            <>
-                                                                <div 
-                                                                    style={{ width: `${highPct}%` }} 
-                                                                    className="bg-danger hover:brightness-110 transition-all cursor-pointer" 
-                                                                    title={`고위험(Extremely High): ${stat.high}개소 (${highPct.toFixed(1)}%)`}
-                                                                ></div>
-                                                                <div 
-                                                                    style={{ width: `${medPct}%` }} 
-                                                                    className="bg-warning hover:brightness-110 transition-all cursor-pointer" 
-                                                                    title={`중위험(High): ${stat.med}개소 (${medPct.toFixed(1)}%)`}
-                                                                ></div>
-                                                                <div 
-                                                                    style={{ width: `${lowPct}%` }} 
-                                                                    className="bg-blue-400 hover:brightness-110 transition-all cursor-pointer" 
-                                                                    title={`저위험(Low-Medium): ${stat.low}개소 (${lowPct.toFixed(1)}%)`}
-                                                                ></div>
-                                                            </>
-                                                        ) : (
-                                                            <div className="w-full h-full bg-slate-200" title="데이터 없음"></div>
-                                                        )}
-                                                    </div>
+                                        <div className="space-y-4">
+                                            {/* 물리적 리스크 공시 여부 3단계 판별 */}
+                                            <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl">
+                                                <span className="text-xs font-bold text-slate-700">물리적 리스크 공시 여부</span>
+                                                <div className="flex items-center space-x-1.5">
+                                                    {!isTarget ? (
+                                                        <span className="text-xs font-semibold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded">해당 없음</span>
+                                                    ) : mySr && (mySr['물리적 리스크 공시 여부'] === 'O' || mySr['물리적 리스크 공시 여부'] === 'Y') ? (
+                                                        <><SvgIcons.CheckCircle /><span className="text-xs font-bold text-emerald-700">공시완료</span></>
+                                                    ) : (
+                                                        <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-danger">미공시</span></>
+                                                    )}
                                                 </div>
-                                            );
-                                        })}
+                                            </div>
+
+                                            {/* 취약자산 & 재무영향 공시 3단계 판별 */}
+                                            <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl">
+                                                <span className="text-xs font-bold text-slate-700">취약자산 & 재무영향 공시</span>
+                                                <div className="flex items-center space-x-1.5">
+                                                    {!isTarget ? (
+                                                        <span className="text-xs font-semibold text-slate-500 bg-slate-200/80 px-2 py-0.5 rounded">해당 없음</span>
+                                                    ) : mySr && (mySr['취약자산 & 재무적 영향 공시 여부'] === 'O' || mySr['취약자산 & 재무적 영향 공시 여부'] === 'Y') ? (
+                                                        <><SvgIcons.CheckCircle /><span className="text-xs font-bold text-emerald-700">공시완료</span></>
+                                                    ) : (
+                                                        <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-danger">미공시</span></>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end space-x-5 text-[11px] font-semibold text-slate-600">
-                                        <div className="flex items-center space-x-1.5">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-danger"></span>
-                                            <span>고위험 (Score 4.0~5.0 / Extremely High)</span>
+
+                                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm">
+                                        <h4 className="text-xs font-bold text-blue-300 uppercase tracking-wider mb-2">인게이지먼트 제안 권고</h4>
+                                        <p className="text-xs leading-relaxed text-slate-300">
+                                            {!isTarget ? (
+                                                "본 기업은 WRI Aqueduct 기준 극단 위험(Score 4.0 이상) 사업장이 식별되지 않아 중점 인게이지먼트 대상에서 제외되었습니다. 일반적인 물리 리스크 모니터링을 권고합니다."
+                                            ) : (
+                                                "전체 평균 수자원 스트레스 점수 외에 극단 위험(Score 4.0 이상)에 노출된 개별 사업장에 대한 대응책 수립 여부 및 재무적 영향 정량치 산출을 요구하는 Bottom-up 인게이지먼트를 제안합니다. 사업장별 매출액/생산량 등 materiality에 대한 데이터 접근 한계로, 비핵심 자산의 리스크가 높은 경우 기업이 공시범위에서 제외할 수 있습니다. 이에 대한 소통이 필요하며, 핵심 자산일 경우 유효한 재무위험 평가와 대응책 마련을 요구해야 합니다. 또한, 생산설비 외에 공급망 내 주요 자산, 외주 사업장 등에 대한 추가적 분석이 필요할 수 있습니다."
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="lg:col-span-2 space-y-6">
+                                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                                        <h4 className="text-sm font-bold text-slate-900 mb-5">지속가능경영보고서 원문 크롤링 내역</h4>
+                                        
+                                        {/* 텍스트 블록 1: 공시내용 */}
+                                        <div className="mb-2 text-xs font-bold text-secondary">■ 물리적 리스크 공시 내용</div>
+                                        <div className="p-4 bg-slate-50 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-secondary mb-6">
+                                            {!isTarget ? (
+                                                "※ 본 기업은 극단위험 사업장을 보유하고 있지 않아 지속가능경영보고서(SR) 중점 크롤링 분석 대상에서 제외되었습니다."
+                                            ) : (
+                                                `"${mySr && (mySr['공시내용'] || mySr['내용']) ? (mySr['공시내용'] || mySr['내용']) : '보고서 내 물리적 기후변화 리스크 관련 상세 공시 정보가 등록되어 있지 않습니다.'}"`
+                                            )}
                                         </div>
-                                        <div className="flex items-center space-x-1.5">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-warning"></span>
-                                            <span>중위험 (Score 3.0~4.0 / High)</span>
+
+                                        {/* 텍스트 블록 2: 재무영향내용 */}
+                                        <div className="mb-2 text-xs font-bold text-warning">■ 취약자산 및 재무적 영향 공시 내용</div>
+                                        <div className="p-4 bg-amber-50/60 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-warning">
+                                            {!isTarget ? (
+                                                "※ 극단위험 사업장 부재로 재무영향 공시 점검 대상에서 제외되었습니다."
+                                            ) : (
+                                                `"${mySr && mySr['재무영향내용'] ? mySr['재무영향내용'] : '가뭄 및 물 스트레스 등 물리 리스크에 따른 세부 재무 영향 공시가 확인되지 않았습니다.'}"`
+                                            )}
                                         </div>
-                                        <div className="flex items-center space-x-1.5">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
-                                            <span>저위험 (Score 0.0~3.0 / Low-Medium)</span>
+                                    </div>
+
+                                    {/* WRI 세부 수자원 리스크 12개 지표 누적 막대 그래프 (Stacked Bar) */}
+                                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                                        <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-2">
+                                            <h4 className="text-sm font-bold text-slate-900">WRI Aqueduct 세부 수자원 리스크 지표 현황 (사업장 분포)</h4>
+                                            <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
+                                                전체 사업장 {myFactories.length}개 대상 분석
+                                            </span>
+                                        </div>
+                                        <div className="space-y-4">
+                                            {wriStats.map((stat, i) => {
+                                                const highPct = stat.total ? ((stat.high / stat.total) * 100) : 0;
+                                                const medPct = stat.total ? ((stat.med / stat.total) * 100) : 0;
+                                                const lowPct = stat.total ? ((stat.low / stat.total) * 100) : 0;
+
+                                                return (
+                                                    <div key={i} className="text-xs">
+                                                        <div className="flex justify-between items-center mb-1.5">
+                                                            <span className="font-semibold text-slate-700">{stat.label}</span>
+                                                            <span className="text-slate-400 font-mono text-[11px]">
+                                                                측정 {stat.total}건 (고위험 {stat.high} / 중위험 {stat.med} / 저위험 {stat.low})
+                                                            </span>
+                                                        </div>
+                                                        <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                                                            {stat.total > 0 ? (
+                                                                <>
+                                                                    <div 
+                                                                        style={{ width: `${highPct}%` }} 
+                                                                        className="bg-danger hover:brightness-110 transition-all cursor-pointer" 
+                                                                        title={`고위험(Extremely High): ${stat.high}개소 (${highPct.toFixed(1)}%)`}
+                                                                    ></div>
+                                                                    <div 
+                                                                        style={{ width: `${medPct}%` }} 
+                                                                        className="bg-warning hover:brightness-110 transition-all cursor-pointer" 
+                                                                        title={`중위험(High): ${stat.med}개소 (${medPct.toFixed(1)}%)`}
+                                                                    ></div>
+                                                                    <div 
+                                                                        style={{ width: `${lowPct}%` }} 
+                                                                        className="bg-blue-400 hover:brightness-110 transition-all cursor-pointer" 
+                                                                        title={`저위험(Low-Medium): ${stat.low}개소 (${lowPct.toFixed(1)}%)`}
+                                                                    ></div>
+                                                                </>
+                                                            ) : (
+                                                                <div className="w-full h-full bg-slate-200" title="데이터 없음"></div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end space-x-5 text-[11px] font-semibold text-slate-600">
+                                            <div className="flex items-center space-x-1.5">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-danger"></span>
+                                                <span>고위험 (Score 4.0~5.0 / Extremely High)</span>
+                                            </div>
+                                            <div className="flex items-center space-x-1.5">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-warning"></span>
+                                                <span>중위험 (Score 3.0~4.0 / High)</span>
+                                            </div>
+                                            <div className="flex items-center space-x-1.5">
+                                                <span className="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+                                                <span>저위험 (Score 0.0~3.0 / Low-Medium)</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
+
+
+
+
+                                
 
                                         {/* Tab 2-3: Leaflet.js 대화형 핫스팟 지도 (OpenStreetMap 무제한 무료 타일 적용) */}
                     {activeTab === 'hotspot' && (
