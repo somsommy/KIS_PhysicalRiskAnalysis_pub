@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Leaflet.js (대화형 지도 라이브러리 - API Key 불필요) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <title>Physical Risk Analyzer | 기업 기후 물리 리스크 분석</title>
     <meta name="description" content="기관투자자를 위한 기업 자산 단위 기후 물리 리스크 및 WRI Aqueduct 수자원 스트레스 분석 플랫폼">
 
@@ -841,13 +845,13 @@
                         </div>
                     )}
 
-                    {/* Tab 2-3: Hotspot SVG Map (실제 정밀 세계지도 벡터 내장) */}
+                    {/* Tab 2-3: Leaflet.js 인터랙티브 대화형 핫스팟 지도 */}
                     {activeTab === 'hotspot' && (
                         <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
                                 <div>
                                     <h3 className="text-lg font-bold text-slate-900">생산거점 수자원 리스크 핫스팟 지도</h3>
-                                    <p className="text-xs text-slate-500">WRI Aqueduct Overall Water Risk 기준 생산거점 위치 매핑</p>
+                                    <p className="text-xs text-slate-500">WRI Aqueduct Overall Water Risk 기준 생산거점 위치 매핑 (마우스 휠 확대/축소 및 드래그 지원)</p>
                                 </div>
                                 <div className="flex items-center space-x-4 text-xs font-semibold">
                                     <div className="flex items-center space-x-1.5">
@@ -865,67 +869,110 @@
                                 </div>
                             </div>
 
-                            <div className="relative w-full h-[540px] bg-[#E8EEF5] rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center">
-                                <svg viewBox="0 0 1000 500" className="w-full h-full">
-                                    {/* 외부 링크 차단 없이 항상 표시되는 정교한 내장 세계 대륙 SVG 벡터 (Equirectangular) */}
-                                    <g fill="#D5E0EA" stroke="#B8C9D9" strokeWidth="0.8">
-                                        {/* 아메리카 대륙 */}
-                                        <path d="M120,40 L160,35 L200,45 L240,40 L280,50 L270,75 L250,90 L240,110 L260,130 L220,150 L180,140 L170,170 L195,190 L185,220 L160,225 L140,210 L125,170 L105,150 L115,120 L90,95 L95,65 Z" />
-                                        <path d="M210,195 L225,185 L240,190 L225,200 L210,195 Z" />
-                                        <path d="M185,220 L210,230 L235,270 L280,310 L260,380 L230,440 L200,470 L190,440 L195,380 L180,330 L165,280 L175,250 Z" />
-                                        {/* 유라시아 & 아프리카 */}
-                                        <path d="M460,70 L510,50 L580,60 L650,50 L750,55 L830,70 L870,100 L850,140 L810,145 L760,180 L730,190 L680,180 L620,160 L570,180 L520,165 L480,120 L450,100 Z" />
-                                        <path d="M465,185 L520,175 L560,205 L590,260 L550,330 L520,380 L490,410 L470,360 L440,320 L425,250 L440,200 Z" />
-                                        {/* 동아시아 & 동남아시아 */}
-                                        <path d="M720,160 L780,165 L840,190 L860,230 L840,270 L790,260 L750,220 Z" />
-                                        <path d="M850,160 L870,170 L860,200 L840,190 Z" />
-                                        <path d="M760,280 L800,290 L830,330 L780,340 Z" />
-                                        {/* 오세아니아 (호주) */}
-                                        <path d="M770,350 L840,340 L880,380 L860,430 L800,440 L760,400 Z" />
-                                    </g>
+                            {/* 대화형 지도 렌더링 컨테이너 */}
+                            <div 
+                                id="hotspot-leaflet-map" 
+                                className="w-full h-[540px] rounded-2xl border border-slate-200 overflow-hidden relative z-0 shadow-inner bg-slate-100"
+                                ref={(el) => {
+                                    if (!el) return;
+                                    
+                                    // Leaflet 라이브러리가 로드되지 않은 경우 동적 스크립트/스타일 주입
+                                    const initLeafletMap = () => {
+                                        if (el._leaflet_id) {
+                                            el._leaflet_id = null;
+                                            el.innerHTML = '';
+                                        }
 
-                                    {/* 위경도 기준선 */}
-                                    <line x1="0" y1="250" x2="1000" y2="250" stroke="#CBD5E1" strokeDasharray="3 3" />
-                                    <line x1="500" y1="0" x2="500" y2="500" stroke="#CBD5E1" strokeDasharray="3 3" />
+                                        // 세계 지도 중심 좌표 및 줌 설정
+                                        const map = L.map(el, {
+                                            center: [25, 20],
+                                            zoom: 2,
+                                            minZoom: 2,
+                                            maxZoom: 18,
+                                            scrollWheelZoom: true
+                                        });
 
-                                    {/* 사업장 핫스팟 마커 렌더링 */}
-                                    {myFactories.map((site, idx) => {
-                                        const rawLat = parseFloat(site.latitude);
-                                        const rawLng = parseFloat(site.longitude);
-                                        if (isNaN(rawLat) || isNaN(rawLng)) return null;
+                                        // 금융 및 ESG 리포트에 적합한 고품질 CartoDB Positron 미니멀 지도 타일 적용
+                                        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                                            attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                                            subdomains: 'abcd',
+                                            maxZoom: 19
+                                        }).addTo(map);
 
-                                        // WGS84 위경도를 1000 x 500 SVG 평면 좌표로 변환
-                                        const x = ((rawLng + 180) / 360) * 1000;
-                                        const y = ((90 - rawLat) / 180) * 500;
-                                        
-                                        const score = parseFloat(site.overall_score) || 0;
-                                        const isHighRisk = score >= 4.0;
-                                        const fillColor = isHighRisk ? '#EF4444' : score >= 3.0 ? '#F59E0B' : '#2563EB';
+                                        // 사업장별 고정 마커 및 상세 팝업 바인딩
+                                        const validMarkers = [];
+                                        myFactories.forEach(site => {
+                                            const rawLat = parseFloat(site.latitude);
+                                            const rawLng = parseFloat(site.longitude);
+                                            if (isNaN(rawLat) || isNaN(rawLng)) return;
 
-                                        return (
-                                            <g key={idx} className="group cursor-pointer">
-                                                {/* 애니메이션 없이 위치에 고정된 단일 마커 */}
-				<circle cx={x} cy={y} r="6" fill={fillColor} stroke="#FFFFFF" strokeWidth="2" className="drop-shadow-sm" />
+                                            const score = parseFloat(site.overall_score) || 0;
+                                            const isHigh = score >= 4.0;
+                                            const isMed = score >= 3.0;
+                                            const color = isHigh ? '#EF4444' : isMed ? '#F59E0B' : '#2563EB';
 
+                                            const marker = L.circleMarker([rawLat, rawLng], {
+                                                radius: 7,
+                                                fillColor: color,
+                                                color: '#FFFFFF',
+                                                weight: 2,
+                                                opacity: 1,
+                                                fillOpacity: 0.9
+                                            }).addTo(map);
 
+                                            // 마커 클릭 시 깔끔한 카드형 팝업 표시
+                                            marker.bindPopup(`
+                                                <div style="font-family: 'Pretendard', sans-serif; padding: 4px; min-width: 170px;">
+                                                    <div style="font-weight: 800; font-size: 13px; color: #0F172A; margin-bottom: 3px;">
+                                                        ${site.location_name || site.name || '핵심 사업장'}
+                                                    </div>
+                                                    <div style="font-size: 11px; color: #64748B; margin-bottom: 6px;">
+                                                        ${site.name_0 || site.country || '대한민국'} ${site.name_1 ? `(${site.name_1})` : ''}
+                                                    </div>
+                                                    <div style="padding-top: 4px; border-top: 1px solid #E2E8F0; display: flex; justify-content: space-between; align-items: center;">
+                                                        <span style="font-size: 11px; color: #475569;">WRI 위험도:</span>
+                                                        <span style="font-size: 12px; font-weight: 800; color: ${color};">
+                                                            ${score ? score.toFixed(2) : '-'} / 5.0
+                                                        </span>
+                                                    </div>
+                                                    <div style="font-size: 10px; color: #94A3B8; margin-top: 2px;">
+                                                        ${site.overall_label || ''}
+                                                    </div>
+                                                </div>
+                                            `);
 
+                                            validMarkers.push([rawLat, rawLng]);
+                                        });
 
-                                                <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                    <rect x={x - 75} y={y - 48} width="150" height="38" rx="8" fill="#0F172A" className="shadow-2xl" />
-                                                    <text x={x} y={y - 30} fill="#FFFFFF" fontSize="11" fontWeight="bold" textAnchor="middle">
-                                                        {site.location_name || site.name || '사업장'}
-                                                    </text>
-                                                    <text x={x} y={y - 16} fill="#94A3B8" fontSize="9.5" textAnchor="middle">
-                                                        WRI 위험도: {score ? score.toFixed(2) : '-'} / 5.0
-                                                    </text>
-                                                </g>
-                                            </g>
-                                        );
-                                    })}
-                                </svg>
-                            </div>
+                                        // 사업장 위치들이 모두 화면에 들어오도록 뷰 자동 맞춤
+                                        if (validMarkers.length > 0) {
+                                            try {
+                                                map.fitBounds(validMarkers, { padding: [40, 40], maxZoom: 6 });
+                                            } catch (err) {}
+                                        }
+
+                                        // 렌더링 누락 방지용 리사이즈 갱신
+                                        setTimeout(() => map.invalidateSize(), 200);
+                                    };
+
+                                    if (!window.L) {
+                                        const cssLink = document.createElement('link');
+                                        cssLink.rel = 'stylesheet';
+                                        cssLink.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                                        document.head.appendChild(cssLink);
+
+                                        const script = document.createElement('script');
+                                        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                                        script.onload = () => setTimeout(initLeafletMap, 50);
+                                        document.head.appendChild(script);
+                                    } else {
+                                        setTimeout(initLeafletMap, 50);
+                                    }
+                                }}
+                            ></div>
                         </div>
                     )}
+
                 </div>
             );
         };
