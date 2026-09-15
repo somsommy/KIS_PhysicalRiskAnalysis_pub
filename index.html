@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physical Risk Analyzer | 기업 기후 물리 리스크 분석</title>
+    <meta name="description" content="기관투자자를 위한 기업 자산 단위 기후 물리 리스크 및 WRI Aqueduct 수자원 스트레스 분석 플랫폼">
+
+    <!-- JSON-LD 구조화 데이터 -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Physical Risk Analyzer",
+      "applicationCategory": "FinanceApplication",
+      "description": "기관투자자용 상장기업 자산 단위 물리적 기후 리스크 및 WRI Aqueduct 수자원 스트레스 분석 플랫폼",
+      "operatingSystem": "All"
+    }
+    </script>
+
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0F172A',
+                        secondary: '#2563EB',
+                        accent: '#10B981',
+                        danger: '#EF4444',
+                        warning: '#F59E0B'
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'pulse-slow': 'pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(12px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- React 18 & ReactDOM (CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+    <!-- PapaParse (CSV 실시간 파싱 CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <!-- Babel Standalone (JSX 컴파일러) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .svg-map-bg { fill: #F1F5F9; stroke: #CBD5E1; stroke-width: 1.2; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // GitHub 저장소 Raw 파일 엔드포인트
+        const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/somsommy/KIS_ClimateRiskAnalysis/main";
+        const CSV_ENDPOINTS = {
+            corp: `${GITHUB_RAW_BASE}/corp_DB_260915.csv`,
+            factory: `${GITHUB_RAW_BASE}/factory_DB_260915.csv`,
+            sr: `${GITHUB_RAW_BASE}/SR_DB_260915.csv`
+        };
+
+        // ==========================================
+        // SVG ICONS
+        // ==========================================
+        const SvgIcons = {
+            Search: () => (
+                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            ),
+            WaterDrop: () => (
+                <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/>
+                </svg>
+            ),
+            Building: () => (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                </svg>
+            ),
+            FileCheck: () => (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            ),
+            GlobeMap: () => (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            ),
+            CheckCircle: () => (
+                <svg className="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                </svg>
+            ),
+            CrossCircle: () => (
+                <svg className="w-5 h-5 text-slate-300" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
+                </svg>
+            ),
+            Spinner: () => (
+                <svg className="animate-spin h-6 w-6 text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            )
+        };
+
+        // ==========================================
+        // NAVIGATION & FOOTER
+        // ==========================================
+        const Navbar = ({ currentRoute, setRoute, dataLoaded, loadError }) => (
+            <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-slate-200">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setRoute('/')}>
+                        <div className="w-9 h-9 bg-primary text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-sm">
+                            PR
+                        </div>
+                        <div>
+                            <span className="font-extrabold text-slate-900 text-lg tracking-tight block">Physical Risk Analyzer</span>
+                            <span className="text-[10px] text-slate-400 font-semibold tracking-wider -mt-1 block">INVESTOR PORTAL</span>
+                        </div>
+                    </div>
+                    <nav className="flex items-center space-x-8">
+                        <button 
+                            onClick={() => setRoute('/')}
+                            className={`text-sm font-semibold transition-colors ${currentRoute === '/' ? 'text-secondary' : 'text-slate-600 hover:text-slate-900'}`}
+                        >
+                            기업별 분석조회
+                        </button>
+                        <button 
+                            onClick={() => setRoute('/dashboard')}
+                            className={`text-sm font-semibold transition-colors ${currentRoute === '/dashboard' ? 'text-secondary' : 'text-slate-600 hover:text-slate-900'}`}
+                        >
+                            수자원 리스크 대시보드
+                        </button>
+                        <div className="flex items-center space-x-3">
+                            <span 
+                                className={`inline-block w-2.5 h-2.5 rounded-full ${loadError ? 'bg-red-500' : dataLoaded ? 'bg-emerald-500' : 'bg-amber-400 animate-ping'}`} 
+                                title={loadError ? `DB 로드 실패: ${loadError}` : dataLoaded ? "GitHub 260915 DB 연동 완료" : "데이터 로딩중"}
+                            ></span>
+                            <a 
+                                href="mailto:dasomj@koreainvestment.com"
+                                className="bg-primary hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg transition-all shadow-sm"
+                            >
+                                문의
+                            </a>
+                        </div>
+                    </nav>
+                </div>
+            </header>
+        );
+
+        const Footer = () => (
+            <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800 mt-24">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div>
+                        <div className="flex items-center space-x-3 mb-2">
+                            <div className="w-7 h-7 bg-slate-800 text-slate-200 rounded-lg flex items-center justify-center font-bold text-xs">PR</div>
+                            <span className="text-white font-bold text-base">Physical Risk Analyzer</span>
+                        </div>
+                        <p className="text-xs text-slate-400 max-w-lg leading-relaxed">
+                            본 서비스는 투자자 고객들의 기업 정보 조회를 지원하기 위해 제공하는 리서치 웹 애플리케이션입니다. GitHub 데이터베이스와 실시간 연동되어 한국은행 공급망 지도 및 WRI Aqueduct 수자원 스트레스 평가 데이터를 제공합니다.
+                        </p>
+                    </div>
+                    <div className="text-sm">
+                        <span className="text-xs text-slate-500 uppercase font-bold tracking-wider block mb-1">Contact</span>
+                        <a 
+                            href="mailto:dasomj@koreainvestment.com" 
+                            className="text-white hover:text-blue-400 font-semibold transition-colors"
+                        >
+                            dasomj@koreainvestment.com
+                        </a>
+                    </div>
+                </div>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pt-6 border-t border-slate-800/80 text-xs text-slate-500 flex justify-between">
+                    <span>© 2026 Physical Risk Analyzer. All rights reserved.</span>
+                    <span>Connected: somsommy/KIS_ClimateRiskAnalysis (260915 DB)</span>
+                </div>
+            </footer>
+        );
+
+        // ==========================================
+        // PAGE: HOME
+        // ==========================================
+        const HomePage = ({ setRoute, setSelectedTicker, corpList, loading, loadError }) => {
+            const [query, setQuery] = useState('');
+
+            const handleSearch = (e) => {
+                e.preventDefault();
+                if (!query.trim()) return;
+                const q = query.trim().toLowerCase();
+                const matched = corpList.find(c => 
+                    (c.name && c.name.toLowerCase().includes(q)) || 
+                    (c.ticker && String(c.ticker).toLowerCase().includes(q))
+                );
+                if (matched) {
+                    setSelectedTicker(matched.ticker);
+                    setRoute('/company');
+                } else {
+                    alert(`'${query}' 기업 정보를 찾을 수 없습니다. (현재 로드된 기업 수: ${corpList.length}개)`);
+                }
+            };
+
+            return (
+                <div className="animate-fade-in-up">
+                    <section className="relative pt-20 pb-28 bg-gradient-to-b from-blue-50/50 to-white overflow-hidden border-b border-slate-100">
+                        <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
+                            {loadError && (
+                                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-left text-xs text-red-700 max-w-2xl mx-auto">
+                                    <div className="font-bold mb-1">⚠️ GitHub 데이터베이스 연결 오류 안내</div>
+                                    <div>{loadError}</div>
+                                    <div className="mt-1 text-slate-500">저장소의 권한(Public 여부) 및 브랜치(main) 파일명을 확인해주세요.</div>
+                                </div>
+                            )}
+
+                            <div className="inline-flex items-center space-x-2 bg-blue-100/70 border border-blue-200/60 rounded-full px-4 py-1.5 mb-8">
+                                <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+                                <span className="text-xs font-bold text-secondary tracking-wide">
+                                    {loading ? "GitHub CSV 데이터베이스 연결 중..." : `총 ${corpList.length}개 상장사 물리 리스크 실시간 연동 완료`}
+                                </span>
+                            </div>
+
+                            <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-tight sm:leading-none mb-6">
+                                물리 리스크 Hotspot 찾기
+                            </h1>
+                            <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed mb-10">
+                                기업 전체 노출도가 낮더라도, 극단 기후 이벤트는 핵심 사업장에 치명적인 손실을 야기합니다. 다각적 공시 범위 대조부터 WRI 수자원 리스크 매핑까지 신속히 조회하세요.
+                            </p>
+
+                            <form onSubmit={handleSearch} className="max-w-2xl mx-auto bg-white p-2 rounded-2xl shadow-xl shadow-slate-200/60 border border-slate-200/80 flex items-center">
+                                <div className="pl-4 pr-2">
+                                    <SvgIcons.Search />
+                                </div>
+                                <input 
+                                    type="text"
+                                    placeholder="기업명 또는 종목코드 입력 (예: 삼성전자, 005930, 현대차)"
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                    className="w-full py-3 px-2 text-slate-800 placeholder-slate-400 focus:outline-none text-base"
+                                />
+                                <button type="submit" className="bg-secondary hover:bg-blue-700 text-white font-bold px-7 py-3 rounded-xl transition-all shadow-md shrink-0">
+                                    기업 정보 조회
+                                </button>
+                            </form>
+                        </div>
+                    </section>
+
+                    <section className="py-20 bg-white">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="text-center max-w-2xl mx-auto mb-16">
+                                <h2 className="text-xs font-bold text-secondary uppercase tracking-widest mb-2">Asset-Level Intelligence</h2>
+                                <p className="text-3xl font-extrabold text-slate-900">3단계 심층 물리 리스크 검증 체계</p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200/70 hover:shadow-lg transition-all">
+                                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-6 text-secondary">
+                                        <SvgIcons.Building />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-900 mb-2">다각적 사업장 비교 분석</h3>
+                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                        한국은행 공급망 지도, 사업보고서 생산설비, 종속회사 생산법인 및 지속가능경영보고서 보고범위를 상호 대조하여 공시 누락을 방지합니다.
+                                    </p>
+                                </div>
+
+                                <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200/70 hover:shadow-lg transition-all">
+                                    <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-6 text-warning">
+                                        <SvgIcons.WaterDrop />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-900 mb-2">WRI Aqueduct Atlas 매핑</h3>
+                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                        전 세계 사업장 좌표를 WRI Aqueduct 수자원 리스크 데이터베이스와 연계하여 Baseline Water Stress 및 극단 가뭄 노출도를 정량화합니다.
+                                    </p>
+                                </div>
+
+                                <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200/70 hover:shadow-lg transition-all">
+                                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-6 text-accent">
+                                        <SvgIcons.FileCheck />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-900 mb-2">공시 신뢰도 & 재무 영향 진단</h3>
+                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                        최신 지속가능경영보고서(SR)의 취약자산(Hotspot) 평가 여부 및 재무적 영향 공시 내역을 자동 대조하여 실질적 대응 태세를 점검합니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="py-16 bg-slate-900 text-white">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between">
+                            <div className="max-w-2xl mb-8 md:mb-0">
+                                <h3 className="text-2xl sm:text-3xl font-bold mb-3">상장기업 수자원 리스크 대시보드</h3>
+                                <p className="text-slate-400 text-sm leading-relaxed">
+                                    한국은행 2026년 공급망 지도 기준 주요 상장기업의 수자원 스트레스 노출도를 전수 비교 분석했습니다. 마우스 호버를 통해 각 사의 최신 SR 공시 현황을 함께 확인하세요.
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setRoute('/dashboard')}
+                                className="bg-secondary hover:bg-blue-600 text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all shadow-lg shrink-0"
+                            >
+                                대시보드 전체보기 →
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            );
+        };
+
+        // ==========================================
+        // PAGE: DASHBOARD (수자원 리스크 대시보드 & SR 호버 툴팁)
+        // ==========================================
+        const DashboardPage = ({ setRoute, setSelectedTicker, corpList, factoryList, srMap, loading }) => {
+            const [rankCriterion, setRankCriterion] = useState('max'); // 'max' | 'avg'
+            const [hoveredTicker, setHoveredTicker] = useState(null);
+            const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+            // corp_DB_260915.csv 스키마에 맞춰 정렬
+            const sortedList = useMemo(() => {
+                return [...corpList].sort((a, b) => {
+                    const valA = parseFloat(rankCriterion === 'max' ? a.max : a.avg) || 0;
+                    const valB = parseFloat(rankCriterion === 'max' ? b.max : b.avg) || 0;
+                    return valB - valA;
+                });
+            }, [corpList, rankCriterion]);
+
+            const handleMouseMove = (e) => {
+                setMousePos({ x: e.clientX, y: e.clientY });
+            };
+
+            const hoveredSr = hoveredTicker ? srMap[hoveredTicker] : null;
+            const hoveredCorp = hoveredTicker ? corpList.find(c => c.ticker === hoveredTicker) : null;
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in-up" onMouseMove={handleMouseMove}>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-6 border-b border-slate-200">
+                        <div>
+                            <span className="text-xs font-bold text-secondary uppercase tracking-wider">Supply Chain Water Stress</span>
+                            <h1 className="text-3xl font-extrabold text-slate-900 mt-1">수자원 리스크 대시보드</h1>
+                            <p className="text-sm text-slate-500 mt-1">
+                                {loading ? "GitHub CSV에서 기업 데이터를 불러오는 중입니다..." : `GitHub CSV 실시간 연동 완료: 총 ${corpList.length}개 유가증권시장 상장사`}
+                            </p>
+                        </div>
+                        <div className="mt-4 md:mt-0 flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                            <button 
+                                onClick={() => setRankCriterion('max')}
+                                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${rankCriterion === 'max' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                            >
+                                Hotspot 최댓값 기준 랭크
+                            </button>
+                            <button 
+                                onClick={() => setRankCriterion('avg')}
+                                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${rankCriterion === 'avg' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'}`}
+                            >
+                                사업장 단순평균 기준 랭크
+                            </button>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className="bg-white rounded-2xl p-16 border border-slate-200 flex flex-col items-center justify-center space-y-4">
+                            <SvgIcons.Spinner />
+                            <p className="text-slate-500 text-sm font-semibold">GitHub 저장소에서 CSV 데이터베이스를 로드하고 있습니다...</p>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-slate-50/80 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                        <th className="py-4 px-6 text-center w-16">순위</th>
+                                        <th className="py-4 px-6">기업명 (마우스 호버 시 SR 공시 요약)</th>
+                                        <th className="py-4 px-6">업종</th>
+                                        <th className="py-4 px-6">단순평균 리스크</th>
+                                        <th className="py-4 px-6">최고 위험도 (Hotspot)</th>
+                                        <th className="py-4 px-6 text-center">고위험 사업장 수</th>
+                                        <th className="py-4 px-6 text-center">극단위험 사업장 수</th>
+                                        <th className="py-4 px-6 text-center">상세조회</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 text-sm">
+                                    {sortedList.length > 0 ? sortedList.map((item, idx) => {
+                                        const avgScore = parseFloat(item.avg) || 0;
+                                        const maxScore = parseFloat(item.max) || 0;
+                                        const highCount = item['number of high risk factories'] || '0';
+                                        const extCount = item['number of extremely high risk factories'] || '0';
+
+                                        return (
+                                            <tr 
+                                                key={item.ticker || idx} 
+                                                className="hover:bg-blue-50/40 transition-colors"
+                                                onMouseEnter={() => setHoveredTicker(item.ticker)}
+                                                onMouseLeave={() => setHoveredTicker(null)}
+                                            >
+                                                <td className="py-4 px-6 text-center font-bold text-slate-400">{idx + 1}</td>
+                                                <td className="py-4 px-6 cursor-pointer">
+                                                    <div className="font-extrabold text-slate-900 flex items-center space-x-1.5">
+                                                        <span>{item.name}</span>
+                                                        <span className="text-[10px] font-semibold text-secondary bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded">SR</span>
+                                                    </div>
+                                                    <div className="text-xs text-slate-400 font-mono">{item.ticker}</div>
+                                                </td>
+                                                <td className="py-4 px-6 text-slate-600">{item.sector || '-'}</td>
+                                                <td className="py-4 px-6">
+                                                    <div className="flex items-center space-x-2">
+                                                        <span className="font-bold text-slate-800 w-8">{avgScore.toFixed(2)}</span>
+                                                        <div className="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className="h-full bg-blue-500 rounded-full"
+                                                                style={{ width: `${Math.min(100, (avgScore / 5) * 100)}%` }}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-4 px-6">
+                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ${
+                                                        maxScore >= 4.0 ? 'bg-red-50 text-danger border border-red-200' :
+                                                        maxScore >= 3.0 ? 'bg-amber-50 text-warning border border-amber-200' :
+                                                        'bg-blue-50 text-secondary border border-blue-200'
+                                                    }`}>
+                                                        {maxScore ? `${maxScore.toFixed(2)} / 5.0` : '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-6 text-center font-semibold text-slate-700">
+                                                    {highCount}개 ({item['ratio of high risk factories'] || '0%'})
+                                                </td>
+                                                <td className="py-4 px-6 text-center font-bold text-danger">
+                                                    {extCount}개 ({item['ratio of extremely high risk factories'] || '0%'})
+                                                </td>
+                                                <td className="py-4 px-6 text-center">
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedTicker(item.ticker);
+                                                            setRoute('/company');
+                                                        }}
+                                                        className="text-xs font-bold text-secondary hover:text-blue-800 underline"
+                                                    >
+                                                        분석보기
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }) : (
+                                        <tr>
+                                            <td colSpan="8" className="py-12 text-center text-slate-400">데이터가 없습니다.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {/* SR 공시 요약 플로팅 호버 툴팁 */}
+                    {hoveredTicker && (
+                        <div 
+                            className="fixed z-50 pointer-events-none transition-all duration-75"
+                            style={{ 
+                                top: `${mousePos.y + 15}px`, 
+                                left: `${Math.min(window.innerWidth - 360, mousePos.x + 15)}px`,
+                                width: '340px'
+                            }}
+                        >
+                            <div className="bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-xl shadow-2xl border border-slate-700 text-xs">
+                                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                                    <span className="font-bold text-sm text-white">
+                                        {hoveredCorp ? hoveredCorp.name : hoveredTicker} ({hoveredTicker})
+                                    </span>
+                                    <span className="text-[10px] text-blue-300 bg-blue-900/60 px-2 py-0.5 rounded font-mono">SR 공시 현황</span>
+                                </div>
+                                {hoveredSr ? (
+                                    <div>
+                                        <div className="space-y-2 mb-2">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-400">물리적 리스크 공시 여부:</span>
+                                                <span className={`font-bold ${hoveredSr['물리적 리스크 공시 여부'] === 'O' || hoveredSr['물리적 리스크 공시 여부'] === 'Y' ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                                    {hoveredSr['물리적 리스크 공시 여부'] || '미공시'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-400">취약자산 & 재무영향 공시:</span>
+                                                <span className={`font-bold ${hoveredSr['취약자산 & 재무적 영향 공시 여부'] === 'O' || hoveredSr['취약자산 & 재무적 영향 공시 여부'] === 'Y' ? 'text-emerald-400' : 'text-slate-400'}`}>
+                                                    {hoveredSr['취약자산 & 재무적 영향 공시 여부'] || '미공시'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {hoveredSr['내용'] && (
+                                            <div className="p-2 bg-slate-800/80 rounded text-[11px] text-slate-300 leading-snug line-clamp-3">
+                                                "{hoveredSr['내용']}"
+                                            </div>
+                                        )}
+                                        {hoveredSr['출처'] && (
+                                            <div className="mt-2 text-[10px] text-slate-500 truncate">
+                                                출처: {hoveredSr['출처']}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-slate-400 py-1">
+                                        극단위험 생산법인 보유 기업이 아니여서, 등록된 지속가능경영보고서(SR) 공시 정보가 없습니다.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+
+        // ==========================================
+        // PAGE: COMPANY DETAIL
+        // ==========================================
+        const CompanyDetailPage = ({ ticker, corpList, factoryList, srMap }) => {
+            const [activeTab, setActiveTab] = useState('sites');
+            const [siteOption, setSiteOption] = useState('bok');
+
+            const corp = corpList.find(c => c.ticker === ticker) || corpList[0] || { name: '기업', ticker: ticker, sector: '-' };
+            const myFactories = factoryList.filter(f => f.ticker === corp.ticker);
+            const mySr = srMap[corp.ticker];
+
+            // 12개 WRI 수자원 리스크 지표 및 오타(riverine flod risk) 자동 보정 매핑
+            const wriIndicators = [
+                { key: 'overall_score', label: 'Overall Water Risk (종합 수자원 위험)' },
+                { key: 'Baseline water stress', label: '기저 물 스트레스 (Baseline Water Stress)' },
+                { key: 'Baseline water depletion', label: '기저 수자원 고갈 (Water Depletion)' },
+                { key: 'interannual variability', label: '연간 변동성 (Interannual Variability)' },
+                { key: 'seasonal variability', label: '계절 변동성 (Seasonal Variability)' },
+                { key: 'groundwater table decline', label: '지하수위 저하율 (Groundwater Table Decline)' },
+                { key: 'riverine flod risk', label: '하천 범람 위험 (Riverine Flood Risk)' }, // CSV 원본의 flod 오타 보정
+                { key: 'coastal flood risk', label: '연안 범람 위험 (Coastal Flood Risk)' },
+                { key: 'drought risk', label: '가뭄 위험도 (Drought Risk)' },
+                { key: 'untreated connected waastewater', label: '미처리 배수 노출 (Untreated Wastewater)' },
+                { key: 'coastal eutrophication potential', label: '부영양화 잠재도 (Coastal Eutrophication)' },
+                { key: 'unimproved/no drinking water', label: '식수 미확보율 (Unimproved Drinking Water)' }
+            ];
+
+            const filteredSites = useMemo(() => {
+                if (!myFactories || myFactories.length === 0) return [];
+                return myFactories;
+            }, [myFactories, siteOption]);
+
+            // [핵심 해결] 숫자 점수 및 텍스트 등급 라벨을 모두 분석하는 통합 위험도 판별 함수
+            const getRiskLevel = (val) => {
+                if (val === undefined || val === null || val === '' || val === '-9999' || val === -9999) return 'nodata';
+                
+                // 1. 숫자인 경우
+                const num = parseFloat(val);
+                if (!isNaN(num)) {
+                    if (num >= 4.0) return 'high';
+                    if (num >= 3.0) return 'med';
+                    if (num >= 0.0) return 'low';
+                }
+
+                // 2. 텍스트 라벨인 경우 (WRI Aqueduct 범례 텍스트 매핑)
+                const text = String(val).toLowerCase();
+                if (text.includes('extremely high') || text.includes('extreme') || text.includes('4-5') || text.includes('>80%') || text.includes('>75%') || text.includes('>20%') || text.includes('>5') || text.includes('>8 cm/y')) {
+                    return 'high';
+                }
+                if (text.includes('high') || text.includes('3-4') || text.includes('40-80%') || text.includes('50-75%') || text.includes('10-20%') || text.includes('1 to 5') || text.includes('2-4 cm/y')) {
+                    return 'med';
+                }
+                if (text.includes('medium') || text.includes('low') || text.includes('arid') || text.includes('0-1') || text.includes('1-2') || text.includes('2-3') || text.includes('<') || text.includes('0 to')) {
+                    return 'low';
+                }
+                return 'low';
+            };
+
+            // WRI 지표별 고/중/저 위험도 분포 실시간 통계 계산 (Stacked Bar용)
+            const wriStats = useMemo(() => {
+                return wriIndicators.map(ind => {
+                    let high = 0, med = 0, low = 0, total = 0;
+                    myFactories.forEach(f => {
+                        const rawVal = f[ind.key];
+                        const level = getRiskLevel(rawVal);
+                        if (level !== 'nodata') {
+                            total++;
+                            if (level === 'high') high++;
+                            else if (level === 'med') med++;
+                            else if (level === 'low') low++;
+                        }
+                    });
+                    return { ...ind, high, med, low, total };
+                });
+            }, [myFactories]);
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 animate-fade-in-up">
+                    {/* 상단 기업 프로필 카드 */}
+                    <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm mb-8">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between">
+                            <div>
+                                <div className="flex items-center space-x-3 mb-2">
+                                    <span className="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1 rounded-full">{corp.sector || '유가증권'}</span>
+                                    <span className="text-slate-400 font-mono text-sm">{corp.ticker}</span>
+                                </div>
+                                <h1 className="text-3xl font-black text-slate-900">{corp.name}</h1>
+                            </div>
+                            <div className="mt-4 md:mt-0 flex space-x-6 border-t md:border-t-0 pt-4 md:pt-0 border-slate-100">
+                                <div className="text-right">
+                                    <span className="text-xs text-slate-400 block font-medium">사업장 평균 수자원 리스크</span>
+                                    <span className="text-2xl font-black text-slate-800">{corp.avg ? parseFloat(corp.avg).toFixed(2) : '-'} <span className="text-xs text-slate-400 font-normal">/ 5.0</span></span>
+                                </div>
+                                <div className="text-right border-l pl-6 border-slate-200">
+                                    <span className="text-xs text-slate-400 block font-medium">최대 리스크 (Hotspot)</span>
+                                    <span className="text-2xl font-black text-danger">{corp.max ? parseFloat(corp.max).toFixed(2) : '-'} <span className="text-xs text-slate-400 font-normal">/ 5.0</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 탭 네비게이션 */}
+                    <div className="flex border-b border-slate-200 mb-8 space-x-8">
+                        <button 
+                            onClick={() => setActiveTab('sites')}
+                            className={`pb-4 text-sm font-bold flex items-center space-x-2 transition-all relative ${activeTab === 'sites' ? 'text-secondary' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <SvgIcons.Building />
+                            <span>2-1. 기업 사업장 리스트</span>
+                            {activeTab === 'sites' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-secondary"></div>}
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('disclosure')}
+                            className={`pb-4 text-sm font-bold flex items-center space-x-2 transition-all relative ${activeTab === 'disclosure' ? 'text-secondary' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <SvgIcons.FileCheck />
+                            <span>2-2. 기업 물리리스크 공시 현황</span>
+                            {activeTab === 'disclosure' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-secondary"></div>}
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('hotspot')}
+                            className={`pb-4 text-sm font-bold flex items-center space-x-2 transition-all relative ${activeTab === 'hotspot' ? 'text-secondary' : 'text-slate-500 hover:text-slate-800'}`}
+                        >
+                            <SvgIcons.GlobeMap />
+                            <span>2-3. 기업 물리 리스크 Hotspot 지도</span>
+                            {activeTab === 'hotspot' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-secondary"></div>}
+                        </button>
+                    </div>
+
+                    {/* Tab 2-1: Sites */}
+                    {activeTab === 'sites' && (
+                        <div>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900">비교 기준 데이터 소스 선택</h3>
+                                    <p className="text-xs text-slate-500">보고서 및 공시 원천별 물리 리스크 평가 대상 사업장을 대조합니다.</p>
+                                </div>
+                                <select 
+                                    value={siteOption}
+                                    onChange={(e) => setSiteOption(e.target.value)}
+                                    className="bg-white border border-slate-300 text-slate-800 text-sm font-semibold rounded-xl px-4 py-2.5 shadow-sm focus:outline-none focus:border-secondary"
+                                >
+                                    <option value="bok">한국은행 2026 공급망 지도 주요 사업장</option>
+                                    <option value="business_report">기업 최근 회계연도 사업보고서 '생산설비'의 사업장</option>
+                                    <option value="subsidiary">기업 최근 회계연도 사업보고서 '연결대상 종속회사 현황' 제조/생산 회사</option>
+                                    <option value="sr_report">기업 최근 지속가능경영보고서의 물리리스크 분석범위 대상 사업장</option>
+                                </select>
+                            </div>
+
+                            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                                <table className="w-full text-left border-collapse text-sm">
+                                    <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase">
+                                            <th className="py-4 px-6">사업장명 (위치)</th>
+                                            <th className="py-4 px-6">국가 / 행정구역</th>
+                                            <th className="py-4 px-6">좌표 (Lat, Lng)</th>
+                                            <th className="py-4 px-6">주요 유역</th>
+                                            <th className="py-4 px-6">기저 물 스트레스 (BWS)</th>
+                                            <th className="py-4 px-6">WRI 종합 점수 (등급)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {filteredSites.length > 0 ? filteredSites.map((site, i) => {
+                                            const score = parseFloat(site.overall_score) || 0;
+                                            return (
+                                                <tr key={i} className="hover:bg-slate-50/80">
+                                                    <td className="py-4 px-6 font-bold text-slate-900">{site.location_name || site.name || '핵심 사업장'}</td>
+                                                    <td className="py-4 px-6 text-slate-600">{site.name_0 || site.country || '대한민국'} {site.name_1 ? `(${site.name_1})` : ''}</td>
+                                                    <td className="py-4 px-6 font-mono text-xs text-slate-400">{parseFloat(site.latitude).toFixed(2) || '-'}, {parseFloat(site.longitude).toFixed(2) || '-'}</td>
+                                                    <td className="py-4 px-6 text-slate-600">{site.major_basin_name || '-'}</td>
+                                                    <td className="py-4 px-6 font-medium text-slate-700">{site['Baseline water stress'] || '-'}</td>
+                                                    <td className="py-4 px-6">
+                                                        <span className={`inline-flex items-center font-bold px-2.5 py-1 rounded text-xs ${
+                                                            score >= 4.0 ? 'bg-red-50 text-danger border border-red-200' :
+                                                            score >= 3.0 ? 'bg-amber-50 text-warning border border-amber-200' :
+                                                            'bg-blue-50 text-secondary border border-blue-200'
+                                                        }`}>
+                                                            {score ? `${score.toFixed(2)} (${site.overall_label || '-'})` : '-'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }) : (
+                                            <tr>
+                                                <td colSpan="6" className="py-12 text-center text-slate-400 font-medium">등록된 사업장 데이터가 없습니다.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tab 2-2: Disclosure & WRI 지표 누적 막대 그래프 */}
+                    {activeTab === 'disclosure' && (
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="space-y-6">
+                                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">공시 현황 및 출처(페이지)</h4>
+                                    <p className="text-lg font-bold text-slate-900 mb-6">{mySr ? mySr['출처'] || '최근 지속가능경영보고서' : '최근 지속가능경영보고서'}</p>
+
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl">
+                                            <span className="text-xs font-bold text-slate-700">물리적 리스크 공시 여부</span>
+                                            <div className="flex items-center space-x-1.5">
+                                                {mySr && (mySr['물리적 리스크 공시 여부'] === 'O' || mySr['물리적 리스크 공시 여부'] === 'Y') ? (
+                                                    <><SvgIcons.CheckCircle /><span className="text-xs font-bold text-emerald-700">공시완료</span></>
+                                                ) : (
+                                                    <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-slate-400">미공시</span></>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl">
+                                            <span className="text-xs font-bold text-slate-700">취약자산 & 재무영향 공시</span>
+                                            <div className="flex items-center space-x-1.5">
+                                                {mySr && (mySr['취약자산 & 재무적 영향 공시 여부'] === 'O' || mySr['취약자산 & 재무적 영향 공시 여부'] === 'Y') ? (
+                                                    <><SvgIcons.CheckCircle /><span className="text-xs font-bold text-emerald-700">공시완료</span></>
+                                                ) : (
+                                                    <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-slate-400">미공시</span></>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm">
+                                    <h4 className="text-xs font-bold text-blue-300 uppercase tracking-wider mb-2">인게이지먼트 제안 권고</h4>
+                                    <p className="text-xs leading-relaxed text-slate-300">
+                                        전체 평균 수자원 스트레스 점수 외에 극단 위험(Score 4.0 이상)에 노출된 개별 사업장에 대한 대응책 수립 여부 및 재무적 영향 정량치 산출을 요구하는 Bottom-up 인게이지먼트를 제안합니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="lg:col-span-2 space-y-6">
+                                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                                    <h4 className="text-sm font-bold text-slate-900 mb-5">지속가능경영보고서 원문 크롤링 내역</h4>
+                                    
+                                    {/* 텍스트 블록 1: 공시내용 */}
+                                    <div className="mb-2 text-xs font-bold text-secondary">■ 취약자산(Hotspot) 평가 공시 내용</div>
+                                    <div className="p-4 bg-slate-50 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-secondary mb-6">
+                                        "{mySr && mySr['공시내용'] ? mySr['공시내용'] : '보고서 내 물리적 기후변화 리스크 관련 상세 공시 정보가 등록되어 있지 않습니다.'}"
+                                    </div>
+
+                                    {/* 텍스트 블록 2: 재무영향내용 */}
+                                    <div className="mb-2 text-xs font-bold text-warning">■ 재무적 영향 공시 내용</div>
+                                    <div className="p-4 bg-amber-50/60 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-warning">
+                                        "{mySr && mySr['재무영향내용'] ? mySr['재무영향내용'] : '가뭄 및 물 스트레스 심화에 따른 공급망 일시 가동 중단 등 세부 재무 영향 공시가 없습니다.'}"
+                                    </div>
+                                </div>
+
+                                {/* WRI 세부 수자원 리스크 12개 지표 누적 막대 그래프 (Stacked Bar) */}
+                                <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                                    <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-2">
+                                        <h4 className="text-sm font-bold text-slate-900">WRI Aqueduct 세부 수자원 리스크 지표 현황 (사업장 분포)</h4>
+                                        <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md">
+                                            전체 사업장 {myFactories.length}개 대상 분석
+                                        </span>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {wriStats.map((stat, i) => {
+                                            const highPct = stat.total ? ((stat.high / stat.total) * 100) : 0;
+                                            const medPct = stat.total ? ((stat.med / stat.total) * 100) : 0;
+                                            const lowPct = stat.total ? ((stat.low / stat.total) * 100) : 0;
+
+                                            return (
+                                                <div key={i} className="text-xs">
+                                                    <div className="flex justify-between items-center mb-1.5">
+                                                        <span className="font-semibold text-slate-700">{stat.label}</span>
+                                                        <span className="text-slate-400 font-mono text-[11px]">
+                                                            측정 {stat.total}건 (고위험 {stat.high} / 중위험 {stat.med} / 저위험 {stat.low})
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                                                        {stat.total > 0 ? (
+                                                            <>
+                                                                <div 
+                                                                    style={{ width: `${highPct}%` }} 
+                                                                    className="bg-danger hover:brightness-110 transition-all cursor-pointer" 
+                                                                    title={`고위험(Extremely High): ${stat.high}개소 (${highPct.toFixed(1)}%)`}
+                                                                ></div>
+                                                                <div 
+                                                                    style={{ width: `${medPct}%` }} 
+                                                                    className="bg-warning hover:brightness-110 transition-all cursor-pointer" 
+                                                                    title={`중위험(High): ${stat.med}개소 (${medPct.toFixed(1)}%)`}
+                                                                ></div>
+                                                                <div 
+                                                                    style={{ width: `${lowPct}%` }} 
+                                                                    className="bg-blue-400 hover:brightness-110 transition-all cursor-pointer" 
+                                                                    title={`저위험(Low-Medium): ${stat.low}개소 (${lowPct.toFixed(1)}%)`}
+                                                                ></div>
+                                                            </>
+                                                        ) : (
+                                                            <div className="w-full h-full bg-slate-200" title="데이터 없음"></div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end space-x-5 text-[11px] font-semibold text-slate-600">
+                                        <div className="flex items-center space-x-1.5">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-danger"></span>
+                                            <span>고위험 (Score 4.0~5.0 / Extremely High)</span>
+                                        </div>
+                                        <div className="flex items-center space-x-1.5">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-warning"></span>
+                                            <span>중위험 (Score 3.0~4.0 / High)</span>
+                                        </div>
+                                        <div className="flex items-center space-x-1.5">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+                                            <span>저위험 (Score 0.0~3.0 / Low-Medium)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tab 2-3: Hotspot SVG Map (실제 정밀 세계지도 벡터 내장) */}
+                    {activeTab === 'hotspot' && (
+                        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-2">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900">생산거점 수자원 리스크 핫스팟 지도</h3>
+                                    <p className="text-xs text-slate-500">WRI Aqueduct Overall Water Risk 기준 취약 자산(위험도 4.0 이상) 위치 매핑</p>
+                                </div>
+                                <div className="flex items-center space-x-4 text-xs font-semibold">
+                                    <div className="flex items-center space-x-1.5">
+                                        <span className="w-3 h-3 rounded-full bg-danger"></span>
+                                        <span>Extremely High (4-5)</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1.5">
+                                        <span className="w-3 h-3 rounded-full bg-warning"></span>
+                                        <span>High (3-4)</span>
+                                    </div>
+                                    <div className="flex items-center space-x-1.5">
+                                        <span className="w-3 h-3 rounded-full bg-secondary"></span>
+                                        <span>Medium-Low (0-3)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="relative w-full h-[540px] bg-[#E8EEF5] rounded-2xl border border-slate-200 overflow-hidden flex items-center justify-center">
+                                <svg viewBox="0 0 1000 500" className="w-full h-full">
+                                    {/* 외부 링크 차단 없이 항상 표시되는 정교한 내장 세계 대륙 SVG 벡터 (Equirectangular) */}
+                                    <g fill="#D5E0EA" stroke="#B8C9D9" strokeWidth="0.8">
+                                        {/* 아메리카 대륙 */}
+                                        <path d="M120,40 L160,35 L200,45 L240,40 L280,50 L270,75 L250,90 L240,110 L260,130 L220,150 L180,140 L170,170 L195,190 L185,220 L160,225 L140,210 L125,170 L105,150 L115,120 L90,95 L95,65 Z" />
+                                        <path d="M210,195 L225,185 L240,190 L225,200 L210,195 Z" />
+                                        <path d="M185,220 L210,230 L235,270 L280,310 L260,380 L230,440 L200,470 L190,440 L195,380 L180,330 L165,280 L175,250 Z" />
+                                        {/* 유라시아 & 아프리카 */}
+                                        <path d="M460,70 L510,50 L580,60 L650,50 L750,55 L830,70 L870,100 L850,140 L810,145 L760,180 L730,190 L680,180 L620,160 L570,180 L520,165 L480,120 L450,100 Z" />
+                                        <path d="M465,185 L520,175 L560,205 L590,260 L550,330 L520,380 L490,410 L470,360 L440,320 L425,250 L440,200 Z" />
+                                        {/* 동아시아 & 동남아시아 */}
+                                        <path d="M720,160 L780,165 L840,190 L860,230 L840,270 L790,260 L750,220 Z" />
+                                        <path d="M850,160 L870,170 L860,200 L840,190 Z" />
+                                        <path d="M760,280 L800,290 L830,330 L780,340 Z" />
+                                        {/* 오세아니아 (호주) */}
+                                        <path d="M770,350 L840,340 L880,380 L860,430 L800,440 L760,400 Z" />
+                                    </g>
+
+                                    {/* 위경도 기준선 */}
+                                    <line x1="0" y1="250" x2="1000" y2="250" stroke="#CBD5E1" strokeDasharray="3 3" />
+                                    <line x1="500" y1="0" x2="500" y2="500" stroke="#CBD5E1" strokeDasharray="3 3" />
+
+                                    {/* 사업장 핫스팟 마커 렌더링 */}
+                                    {myFactories.map((site, idx) => {
+                                        const rawLat = parseFloat(site.latitude);
+                                        const rawLng = parseFloat(site.longitude);
+                                        if (isNaN(rawLat) || isNaN(rawLng)) return null;
+
+                                        // WGS84 위경도를 1000 x 500 SVG 평면 좌표로 변환
+                                        const x = ((rawLng + 180) / 360) * 1000;
+                                        const y = ((90 - rawLat) / 180) * 500;
+                                        
+                                        const score = parseFloat(site.overall_score) || 0;
+                                        const isHighRisk = score >= 4.0;
+                                        const fillColor = isHighRisk ? '#EF4444' : score >= 3.0 ? '#F59E0B' : '#2563EB';
+
+                                        return (
+                                            <g key={idx} className="group cursor-pointer">
+                                                {isHighRisk && (
+                                                    <circle cx={x} cy={y} r="15" fill={fillColor} opacity="0.3" className="animate-ping" />
+                                                )}
+                                                <circle cx={x} cy={y} r="6.5" fill={fillColor} stroke="#FFFFFF" strokeWidth="2" className="drop-shadow-md" />
+
+                                                <g className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                    <rect x={x - 75} y={y - 48} width="150" height="38" rx="8" fill="#0F172A" className="shadow-2xl" />
+                                                    <text x={x} y={y - 30} fill="#FFFFFF" fontSize="11" fontWeight="bold" textAnchor="middle">
+                                                        {site.location_name || site.name || '사업장'}
+                                                    </text>
+                                                    <text x={x} y={y - 16} fill="#94A3B8" fontSize="9.5" textAnchor="middle">
+                                                        WRI 위험도: {score ? score.toFixed(2) : '-'} / 5.0
+                                                    </text>
+                                                </g>
+                                            </g>
+                                        );
+                                    })}
+                                </svg>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // ==========================================
+        // ROOT APP CONTROLLER (GitHub 260915 CSV Fetch & Parse)
+        // ==========================================
+        const App = () => {
+            const [currentRoute, setRoute] = useState('/');
+            const [selectedTicker, setSelectedTicker] = useState('');
+            const [loading, setLoading] = useState(true);
+            const [dataLoaded, setDataLoaded] = useState(false);
+            const [loadError, setLoadError] = useState(null);
+
+            const [corpList, setCorpList] = useState([]);
+            const [factoryList, setFactoryList] = useState([]);
+            const [srMap, setSrMap] = useState({});
+
+            useEffect(() => {
+                const fetchCsv = async (url) => {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`파일 요청 실패 (${response.status} ${response.statusText}): ${url}`);
+                    }
+                    const text = await response.text();
+                    if (text.trim().startsWith("<!DOCTYPE") || text.trim().startsWith("<html")) {
+                        throw new Error(`CSV 파일 대신 HTML 페이지가 반환되었습니다. URL이나 저장소 공개 여부를 확인하세요: ${url}`);
+                    }
+                    return new Promise((resolve, reject) => {
+                        Papa.parse(text, {
+                            header: true,
+                            skipEmptyLines: true,
+                            complete: (results) => resolve(results.data),
+                            error: (err) => reject(err)
+                        });
+                    });
+                };
+
+                const loadAllData = async () => {
+                    setLoading(true);
+                    setLoadError(null);
+                    try {
+                        const [corps, factories, srs] = await Promise.all([
+                            fetchCsv(CSV_ENDPOINTS.corp),
+                            fetchCsv(CSV_ENDPOINTS.factory),
+                            fetchCsv(CSV_ENDPOINTS.sr)
+                        ]);
+
+                        // SR DB Map 생성 (ticker 기준)
+                        const srDict = {};
+                        srs.forEach(item => {
+                            if (item.ticker) srDict[item.ticker] = item;
+                        });
+
+                        setCorpList(corps);
+                        setFactoryList(factories);
+                        setSrMap(srDict);
+                        if (corps.length > 0 && corps[0].ticker) {
+                            setSelectedTicker(corps[0].ticker);
+                        }
+                        setDataLoaded(true);
+                    } catch (err) {
+                        console.error("데이터 로드 실패:", err);
+                        setLoadError(err.message);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                loadAllData();
+            }, []);
+
+            return (
+                <div className="min-h-screen flex flex-col bg-slate-50">
+                    <Navbar currentRoute={currentRoute} setRoute={setRoute} dataLoaded={dataLoaded} loadError={loadError} />
+                    <main className="flex-grow">
+                        {currentRoute === '/' && (
+                            <HomePage 
+                                setRoute={setRoute} 
+                                setSelectedTicker={setSelectedTicker} 
+                                corpList={corpList}
+                                loading={loading}
+                                loadError={loadError}
+                            />
+                        )}
+                        {currentRoute === '/dashboard' && (
+                            <DashboardPage 
+                                setRoute={setRoute} 
+                                setSelectedTicker={setSelectedTicker} 
+                                corpList={corpList}
+                                factoryList={factoryList}
+                                srMap={srMap}
+                                loading={loading}
+                            />
+                        )}
+                        {currentRoute === '/company' && (
+                            <CompanyDetailPage 
+                                ticker={selectedTicker} 
+                                corpList={corpList}
+                                factoryList={factoryList}
+                                srMap={srMap}
+                            />
+                        )}
+                    </main>
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+
+
+ 
