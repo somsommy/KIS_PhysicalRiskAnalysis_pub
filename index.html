@@ -183,7 +183,7 @@
                             <span className="text-white font-bold text-base">Physical Risk Analyzer</span>
                         </div>
                         <p className="text-xs text-slate-400 max-w-lg leading-relaxed">
-                            본 서비스는 투자자 고객들의 기업 정보 조회를 지원하기 위해 제공하는 리서치 웹 애플리케이션입니다. GitHub 데이터베이스와 실시간 연동되어 한국은행 공급망 지도 및 WRI Aqueduct 수자원 스트레스 평가 데이터를 제공합니다. 사업장 주소는 정확한 사업장 주소가 아닌 해당 지역의 주소이므로, 데이터에 오차가 있을 수 있습니다. 
+                            본 서비스는 투자자 고객들의 기업 정보 조회를 지원하기 위해 제공하는 리서치 웹 애플리케이션입니다. GitHub 데이터베이스와 실시간 연동되어 한국은행 공급망 지도 및 WRI Aqueduct 수자원 스트레스 평가 데이터를 제공합니다.
                         </p>
                     </div>
                     <div className="text-sm">
@@ -494,13 +494,13 @@
                                             <div className="flex justify-between items-center">
                                                 <span className="text-slate-400">물리적 리스크 공시 여부:</span>
                                                 <span className={`font-bold ${hoveredSr['물리적 리스크 공시 여부'] === 'O' || hoveredSr['물리적 리스크 공시 여부'] === 'Y' ? 'text-emerald-400' : 'text-slate-400'}`}>
-                                                    {hoveredSr['물리적 리스크 공시 여부'] || '미공시'}
+                                                    {hoveredSr['물리적 리스크 공시 여부'] || '극단위험 사업장 미보유-데이터X'}
                                                 </span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className="text-slate-400">취약자산 & 재무영향 공시:</span>
                                                 <span className={`font-bold ${hoveredSr['취약자산 & 재무적 영향 공시 여부'] === 'O' || hoveredSr['취약자산 & 재무적 영향 공시 여부'] === 'Y' ? 'text-emerald-400' : 'text-slate-400'}`}>
-                                                    {hoveredSr['취약자산 & 재무적 영향 공시 여부'] || '미공시'}
+                                                    {hoveredSr['취약자산 & 재무적 영향 공시 여부'] || '극단위험 사업장 미보유-데이터X'}
                                                 </span>
                                             </div>
                                         </div>
@@ -735,7 +735,7 @@
                                                 {mySr && (mySr['물리적 리스크 공시 여부'] === 'O' || mySr['물리적 리스크 공시 여부'] === 'Y') ? (
                                                     <><SvgIcons.CheckCircle /><span className="text-xs font-bold text-emerald-700">공시완료</span></>
                                                 ) : (
-                                                    <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-slate-400">미공시</span></>
+                                                    <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-slate-400">극단위험 사업장 미보유-데이터X</span></>
                                                 )}
                                             </div>
                                         </div>
@@ -745,7 +745,7 @@
                                                 {mySr && (mySr['취약자산 & 재무적 영향 공시 여부'] === 'O' || mySr['취약자산 & 재무적 영향 공시 여부'] === 'Y') ? (
                                                     <><SvgIcons.CheckCircle /><span className="text-xs font-bold text-emerald-700">공시완료</span></>
                                                 ) : (
-                                                    <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-slate-400">미공시</span></>
+                                                    <><SvgIcons.CrossCircle /><span className="text-xs font-bold text-slate-400">극단위험 사업장 미보유-데이터X</span></>
                                                 )}
                                             </div>
                                         </div>
@@ -767,13 +767,13 @@
                                     {/* 텍스트 블록 1: 공시내용 */}
                                     <div className="mb-2 text-xs font-bold text-secondary">■ 물리적 리스크 공시 내용</div>
                                     <div className="p-4 bg-slate-50 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-secondary mb-6">
-                                        "{mySr && mySr['공시내용'] ? mySr['공시내용'] : '보고서 내 물리적 기후변화 리스크 관련 상세 공시 정보가 등록되어 있지 않습니다.'}"
+                                        "{mySr && mySr['공시내용'] ? mySr['공시내용'] : '극단위험 사업장 미보유 기업으로 물리적 기후변화 리스크 관련 상세 공시 정보가 등록되어 있지 않습니다.'}"
                                     </div>
 
                                     {/* 텍스트 블록 2: 재무영향내용 */}
                                     <div className="mb-2 text-xs font-bold text-warning">■ 취약자산 및 재무적 영향 공시 내용</div>
                                     <div className="p-4 bg-amber-50/60 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-warning">
-                                        "{mySr && mySr['재무영향내용'] ? mySr['재무영향내용'] : '가뭄 및 물 스트레스 심화에 따른 공급망 일시 가동 중단 등 세부 재무 영향 공시가 없습니다.'}"
+                                        "{mySr && mySr['재무영향내용'] ? mySr['재무영향내용'] : '극단위험 사업장 미보유 기업으로 물리적 기후변화 리스크 관련 상세 공시 정보가 등록되어 있지 않습니다.'}"
                                     </div>
                                 </div>
 
