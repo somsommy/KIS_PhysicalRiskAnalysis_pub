@@ -785,14 +785,14 @@
                                     <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
                                         <h4 className="text-sm font-bold text-slate-900 mb-5">지속가능경영보고서 원문 크롤링 내역</h4>
                                         
-                                        <div className="mb-2 text-xs font-bold text-secondary">&#9632; 물리적 리스크 공시 내용</div>
+                                        <div className="mb-2 text-xs font-bold text-secondary">■ 물리적 리스크 공시 내용</div>
                                         <div className="p-4 bg-slate-50 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-secondary mb-6">
-                                            {mySr && (mySr['공시내용'] || mySr['내용']) ? `"${mySr['공시내용'] || mySr['내용']}"` : "&#8251; 보고서 내 물리적 기후변화 리스크 관련 상세 공시 정보가 등록되어 있지 않습니다."}
+                                            {mySr && (mySr['공시내용'] || mySr['내용']) ? `"${mySr['공시내용'] || mySr['내용']}"` : "※ 보고서 내 물리적 기후변화 리스크 관련 상세 공시 정보가 등록되어 있지 않습니다."}
                                         </div>
                                         
-                                        <div className="mb-2 text-xs font-bold text-warning">&#9632; 취약자산 및 재무적 영향 공시 내용</div>
+                                        <div className="mb-2 text-xs font-bold text-warning">■ 취약자산 및 재무적 영향 공시 내용</div>
                                         <div className="p-4 bg-amber-50/60 rounded-xl text-slate-700 text-sm leading-relaxed border-l-4 border-warning">
-                                            {mySr && mySr['재무영향내용'] ? `"${mySr['재무영향내용']}"` : "&#8251; 가뭄 및 물 스트레스 등 물리 리스크에 따른 세부 재무 영향 공시가 확인되지 않았습니다."}
+                                            {mySr && mySr['재무영향내용'] ? `"${mySr['재무영향내용']}"` : "※ 가뭄 및 물 스트레스 등 물리 리스크에 따른 세부 재무 영향 공시가 확인되지 않았습니다."}
                                         </div>
                                     </div>
 
@@ -919,7 +919,7 @@
 
                                         // [핵심 해결] API 키가 전혀 필요 없는 공식 OpenStreetMap 표준 타일 서버 적용
                                         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                                            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                                             maxZoom: 19
                                         }).addTo(map);
 
